@@ -1,0 +1,33 @@
+type Author {
+    id: ID!
+    name: String!
+    nationality: String!
+}
+
+type Book {
+    id: ID!
+    title: String!
+    author: Author
+    ISBN: String!
+    publication: String! 
+}
+
+type Loan {
+    id: ID!
+    book: Book
+    user: String!
+    loanDate: String!
+    returnDate: String
+}
+
+type Query {
+    allAuthors: [Author!]!
+    allBooks: [Book!]!
+    bookById(id: ID!): Book
+    allLoans: [Loan!]!
+}
+
+type Mutation {
+    createAuthor(name: String!, nationality: String!): Author!
+    updateAuthor(id: ID!, name: String!, nationality: String!): Author!
+}
