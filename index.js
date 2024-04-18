@@ -1,5 +1,8 @@
 const { ApolloServer, gql } = require('apollo-server');
+const { PubSub } = require('graphql-subscriptions'); 
 const fs = require('fs');
+
+const pubsub = new PubSub();
 
 // Lee el esquema GraphQL desde el archivo
 const schema = fs.readFileSync('./schema.graphql', 'utf8');
@@ -26,17 +29,20 @@ let books = [
 ];
 
 // Arreglo con los préstamos
+// Agregar dos préstamos adicionales
 let loans = [
     { id: "1", bookId: "1", user: "John Doe", loanDate: "2024-03-20", returnDate: "2024-04-20" },
-
+    { id: "2", bookId: "2", user: "Jane Smith", loanDate: "2024-04-01", returnDate: "2024-05-01" },
+    { id: "3", bookId: "1", user: "Alice Johnson", loanDate: "2024-04-10", returnDate: "2024-05-10" }
 ];
+
 
 const resolvers = {
     Query: {
         allBooks: () => books,
         bookById: (parent, { id }) => books.find(book => book.id === id),
         allAuthors: () => authors,
-        allLoans: () => loans
+        allLoans: () => loans.map(loan => ({ ...loan, book: books.find(book => book.id === loan.bookId) }))
     },
     Mutation: {
         createAuthor: (parent, { name, nationality }) => {
@@ -150,7 +156,10 @@ const resolvers = {
 // Definir el servidor Apollo
 const server = new ApolloServer({
     typeDefs: gql(schema),
-    resolvers
+    resolvers,
+    subscriptions: {
+        path: '/subscriptions',
+    },
 });
 
 // Iniciar el servidor
