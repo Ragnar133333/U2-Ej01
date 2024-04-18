@@ -46,6 +46,8 @@ const resolvers = {
                 nationality: nationality
             };
             authors.push(newAuthor);
+            // Publicar evento de autor creado
+            pubsub.publish("NEW_AUTHOR_CREATED", { newAuthorCreated: newAuthor });
             return newAuthor;
         },
         updateAuthor: (parent, { id, name, nationality }) => {
@@ -58,7 +60,89 @@ const resolvers = {
                 name: name,
                 nationality: nationality
             };
+            // Publicar evento de autor actualizado
+            pubsub.publish('AUTHOR_UPDATED', { authorUpdated: authors[authorIndex] });
             return authors[authorIndex];
+        },
+        deleteAuthor: (parent, { id }) => {
+            const authorIndex = authors.findIndex(author => author.id === id);
+            if (authorIndex === -1) {
+                throw new Error("Autor no encontrado");
+            }
+            const deletedAuthor = authors.splice(authorIndex, 1)[0];
+            // Publicar evento de autor eliminado
+            pubsub.publish('AUTHOR_DELETED', { authorDeleted: deletedAuthor });
+            return deletedAuthor;
+        },
+        updateBook: (parent, { id, title, authorId, ISBN, publication }) => {
+            const bookIndex = books.findIndex(book => book.id === id);
+            if (bookIndex === -1) {
+                throw new Error("Libro no encontrado");
+            }
+            books[bookIndex] = {
+                id: id,
+                title: title,
+                authorId: authorId,
+                ISBN: ISBN,
+                publication: publication
+            };
+            // Publicar evento de libro actualizado
+            pubsub.publish('BOOK_UPDATED', { bookUpdated: books[bookIndex] });
+            return books[bookIndex];
+        },
+        createBook: (parent, { title, authorId, ISBN, publication }) => {
+            const newBook = {
+                id: String(books.length + 1),
+                title,
+                authorId,
+                ISBN,
+                publication
+            };
+            books.push(newBook);
+            const author = authors.find(author => author.id === authorId);
+            // Si se encuentra el autor, lo incluimos en el evento, de lo contrario, lo dejamos como null
+            const bookAddedPayload = author ? { ...newBook, author } : newBook;
+            pubsub.publish('BOOK_ADDED', { bookAdded: bookAddedPayload });
+            return newBook;
+        },
+        deleteBook: (parent, { id }) => {
+            const bookIndex = books.findIndex(book => book.id === id);
+            if (bookIndex === -1) {
+                throw new Error("Libro no encontrado");
+            }
+            const deletedBook = books.splice(bookIndex, 1)[0];
+            // Publicar evento de libro eliminado
+            pubsub.publish('BOOK_DELETED', { bookDeleted: deletedBook });
+            return deletedBook;
+        },
+    },
+    Subscription: {
+        authorAdded: {
+            subscribe: () => pubsub.asyncIterator(['NEW_AUTHOR_CREATED'])
+        },
+        authorDeleted: {
+            subscribe: () => pubsub.asyncIterator(['AUTHOR_DELETED'])
+        },
+        authorUpdated: {
+            subscribe: () => pubsub.asyncIterator(['AUTHOR_UPDATED'])
+        },
+        
+        bookUpdated: {
+            subscribe: () => pubsub.asyncIterator(['BOOK_UPDATED'])
+        },
+        bookDeleted: {
+            subscribe: () => pubsub.asyncIterator(['BOOK_DELETED'])
+        },
+        bookAdded: {
+            subscribe: () => pubsub.asyncIterator(['BOOK_ADDED']),
+            resolve: (payload) => {
+                // Aquí puedes procesar el payload de la suscripción
+                // Por ejemplo, agregar información adicional, como el autor
+                const book = payload.bookAdded;
+                const author = authors.find(author => author.id === book.authorId);
+                // Si se encuentra el autor, lo incluimos en el payload, de lo contrario, lo dejamos como null
+                return author ? { ...book, author } : book;
+            }
         }
     }
 };
@@ -70,6 +154,7 @@ const server = new ApolloServer({
 });
 
 // Iniciar el servidor
-server.listen().then(({ url }) => {
+server.listen().then(({ url, subscriptionsUrl }) => {
     console.log(`Servidor ejecutándose en ${url}`);
+    console.log(`Servidor de suscripciones ejecutandose en ${subscriptionsUrl}`);
 });
