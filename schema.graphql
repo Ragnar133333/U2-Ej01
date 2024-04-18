@@ -30,4 +30,17 @@ type Query {
 type Mutation {
     createAuthor(name: String!, nationality: String!): Author!
     updateAuthor(id: ID!, name: String!, nationality: String!): Author!
+    deleteAuthor(id: ID!): Author!
+    createBook(title: String!, authorId: ID!, ISBN: String!, publication: String!): Book!
+    updateBook(id: ID!, title: String!, authorId: ID!, ISBN: String!, publication: String!): Book!
+    deleteBook(id: ID!): Book!
+}
+
+type Subscription {
+    authorAdded: Author
+    authorDeleted: Author
+    authorUpdated: Author
+    bookAdded: Book
+    bookDeleted: Book
+    bookUpdated: Book
 }
